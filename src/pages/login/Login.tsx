@@ -1,10 +1,38 @@
-import { Layout, Card, Space, Form, Input, Checkbox, Button, Flex } from 'antd'
+import { Layout, Card, Space, Form, Input, Checkbox, Button, Flex, Alert } from 'antd'
 import { LockFilled, UserOutlined, LockOutlined } from '@ant-design/icons'
-import { Link } from 'react-router-dom'
+// import { Link } from 'react-router-dom'
 import Logo from '../../components/icons/Logo'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { Credentials } from '../../types'
+import { login, self } from '../../http/api'
+
+
+const loginUser = async (credentials: Credentials) => {
+    const { data } = await login(credentials)
+    return data
+}
+const getSelf = async () => {
+    const { data } = await self()
+    return data;
+}
 
 const Login = () => {
-
+    const { data: selfData, refetch } = useQuery({
+        queryKey: ['self'],
+        queryFn: getSelf,
+        enabled: false
+    })
+    const { mutate, isPending, isError, error } = useMutation({
+        mutationKey: ['login'],
+        mutationFn: loginUser,
+        onSuccess: async () => {
+            console.log("login");
+            refetch();
+        },
+        onError: async () => {
+            console.log("login error");
+        }
+    })
     return (
         <>
             <Layout style={{ height: '100vh', display: 'grid', placeItems: 'center' }}>
@@ -18,7 +46,11 @@ const Login = () => {
                             remember: true,
                             username: 'demo@gmail.com',
                             password: 'demo@123'
-                        }} >
+                        }}
+                            onFinish={(values) => {
+                                mutate({ email: values.username, password: values.password })
+                            }}>
+                            {isError && <Alert style={{ margin: 24 }} type='error' message={error.message} />}
                             <Form.Item name="username" rules={[
                                 {
                                     required: true,
@@ -49,7 +81,7 @@ const Login = () => {
                             </Flex>
 
                             <Form.Item>
-                                <Button type='primary' htmlType='submit' style={{ width: '100%' }} >Log in</Button>
+                                <Button type='primary' htmlType='submit' style={{ width: '100%' }} loading={isPending} >Log in</Button>
                             </Form.Item>
                         </Form>
                     </Card>
